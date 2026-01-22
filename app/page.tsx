@@ -110,7 +110,7 @@ export default function Home() {
                 viewport={{ once: true, margin: '-40px' }}
                 transition={{ duration: 0.5, delay: i * 0.1 }}
                 className="glass-strong rounded-2xl p-6 sm:p-8 border border-white/10 hover:border-emerald-500/30 transition-colors"
-                onMouseEnter={() => playHover()}
+
               >
                 <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center mb-4">
                   <item.icon className="w-6 h-6 text-emerald-400" />
@@ -132,7 +132,6 @@ export default function Home() {
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white/5 hover:bg-emerald-500/20 border border-white/10 hover:border-emerald-500/40 text-gray-300 hover:text-emerald-400 transition-colors"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onMouseEnter={() => playHover()}
                 onClick={() => playClick()}
               >
                 Začít hru
@@ -161,15 +160,15 @@ export default function Home() {
         {/* Footer – kompaktní */}
         <footer className="px-4 sm:px-6 py-8 border-t border-white/10">
           <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-            <Link href="/" className="flex items-center gap-2 text-gray-400 hover:text-emerald-400 transition-colors" onMouseEnter={() => playHover()} onClick={() => playClick()}>
+            <Link href="/" className="flex items-center gap-2 text-gray-400 hover:text-emerald-400 transition-colors" onClick={() => playClick()}>
               <MapPin className="w-4 h-4" />
               <span className="font-semibold">DestiGuess</span>
             </Link>
             <div className="flex items-center gap-6">
-              <Link href="/play" className="text-gray-400 hover:text-white transition-colors text-sm" onMouseEnter={() => playHover()} onClick={() => playClick()}>
+              <Link href="/play" className="text-gray-400 hover:text-white transition-colors text-sm" onClick={() => playClick()}>
                 Hrát
               </Link>
-              <Link href="/auth" className="text-gray-400 hover:text-white transition-colors text-sm" onMouseEnter={() => playHover()} onClick={() => playClick()}>
+              <Link href="/auth" className="text-gray-400 hover:text-white transition-colors text-sm"  onClick={() => playClick()}>
                 Přihlásit se
               </Link>
             </div>
