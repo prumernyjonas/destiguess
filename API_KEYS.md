@@ -48,7 +48,24 @@ NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=destiguess-avatars
 
 ---
 
-### 3. PostgreSQL Databáze
+### 3. MapTiler (Mapy)
+
+**Kde získat:**
+1. Jděte na [maptiler.com](https://www.maptiler.com) a vytvořte účet
+2. Po přihlášení přejděte do **Cloud** → **API keys**
+3. Vytvořte nový API klíč nebo použijte existující
+4. Zkopírujte **API key** → `NEXT_PUBLIC_MAPTILER_API_KEY`
+
+**Kam dát:**
+```env
+NEXT_PUBLIC_MAPTILER_API_KEY=your-maptiler-api-key-here
+```
+
+**Poznámka:** Pokud MapTiler API klíč není nastaven, aplikace automaticky použije OpenStreetMap jako fallback.
+
+---
+
+### 4. PostgreSQL Databáze
 
 **Varianta A: Použití Supabase PostgreSQL (Doporučeno)**
 
@@ -96,6 +113,11 @@ CLOUDINARY_API_SECRET=abcdefghijklmnopqrstuvwxyz1234567890
 NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=destiguess-avatars
 
 # ============================================
+# MAPTILER CONFIGURATION (Mapy)
+# ============================================
+NEXT_PUBLIC_MAPTILER_API_KEY=your-maptiler-api-key-here
+
+# ============================================
 # DATABASE CONFIGURATION
 # ============================================
 # Pro Supabase PostgreSQL:
@@ -129,6 +151,8 @@ DATABASE_URL=postgresql://postgres.xxxxx:[PASSWORD]@aws-0-eu-central-1.pooler.su
 
 ## ✅ Kontrolní seznam
 
+- [ ] MapTiler účet vytvořen
+- [ ] `NEXT_PUBLIC_MAPTILER_API_KEY` nastaven
 - [ ] Supabase projekt vytvořen
 - [ ] `NEXT_PUBLIC_SUPABASE_URL` nastaven
 - [ ] `NEXT_PUBLIC_SUPABASE_ANON_KEY` nastaven

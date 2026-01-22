@@ -61,18 +61,19 @@ export const db = {
     return data;
   },
 
-  // Locations
   async getAllLocations() {
     const supabase = await getSupabaseDb();
     const { data, error } = await supabase
       .from('locations')
       .select('*');
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching locations:', error);
+      throw error;
+    }
     return data || [];
   },
 
-  // Games
   async createGame(gameData: {
     user_id?: string | null;
     total_score?: number;
@@ -84,7 +85,10 @@ export const db = {
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error creating game:', error);
+      throw error;
+    }
     return data;
   },
 
@@ -99,7 +103,10 @@ export const db = {
       .insert(rounds)
       .select();
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error creating game rounds:', error);
+      throw error;
+    }
     return data || [];
   },
 
@@ -135,20 +142,39 @@ export const db = {
 
   async getRoundByGameAndIndex(gameId: string, roundIndex: number) {
     const supabase = await getSupabaseDb();
-    const { data, error } = await supabase
+    
+    // Nejdřív získat round
+    const { data: round, error: roundError } = await supabase
       .from('game_rounds')
-      .select(`
-        *,
-        locations(*)
-      `)
+      .select('*')
       .eq('game_id', gameId)
       .eq('round_index', roundIndex)
       .single();
     
-    if (error) throw error;
+    if (roundError) {
+      console.error('Error fetching round:', roundError);
+      throw roundError;
+    }
+    
+    if (!round) {
+      throw new Error('Round not found');
+    }
+    
+    // Pak získat location
+    const { data: location, error: locationError } = await supabase
+      .from('locations')
+      .select('*')
+      .eq('id', round.location_id)
+      .single();
+    
+    if (locationError) {
+      console.error('Error fetching location:', locationError);
+      throw locationError;
+    }
+    
     return {
-      ...data,
-      location: Array.isArray(data.locations) ? data.locations[0] : data.locations,
+      ...round,
+      location,
     };
   },
 

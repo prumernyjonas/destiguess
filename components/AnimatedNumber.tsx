@@ -34,9 +34,14 @@ export function AnimatedNumber({ value, duration = 1, className = '', decimals =
   }, [rounded]);
 
   return (
-    <span className={className}>
+    <motion.span 
+      className={className}
+      initial={{ scale: 0.8, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ type: "spring", damping: 20 }}
+    >
       {displayValue.toFixed(decimals)}
-    </span>
+    </motion.span>
   );
 }
 
@@ -47,31 +52,39 @@ interface AccuracyLabelProps {
 export function AccuracyLabel({ distanceKm }: AccuracyLabelProps) {
   let label = '';
   let color = '';
+  let icon = '';
 
   if (distanceKm < 1) {
     label = 'Insane';
     color = 'text-emerald-400';
+    icon = '🔥';
   } else if (distanceKm < 10) {
     label = 'Great';
     color = 'text-cyan-400';
+    icon = '⭐';
   } else if (distanceKm < 100) {
     label = 'Good';
     color = 'text-lime-400';
+    icon = '👍';
   } else if (distanceKm < 1000) {
     label = 'Ok';
     color = 'text-yellow-400';
+    icon = '👌';
   } else {
     label = 'Far';
     color = 'text-orange-400';
+    icon = '📍';
   }
 
   return (
-    <motion.span
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className={`text-2xl font-semibold ${color}`}
+    <motion.div
+      initial={{ opacity: 0, y: 10, scale: 0.9 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ type: "spring", damping: 20 }}
+      className={`text-xl sm:text-2xl font-semibold ${color} flex items-center justify-center gap-2`}
     >
-      {label}
-    </motion.span>
+      <span>{icon}</span>
+      <span>{label}</span>
+    </motion.div>
   );
 }

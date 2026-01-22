@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+import { useGameSounds } from '@/components/GameAudio';
 
 export default function AuthForm() {
   const [isLogin, setIsLogin] = useState(true);
@@ -14,6 +15,7 @@ export default function AuthForm() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const supabase = createClient();
+  const { playClick, playSubmit, playError } = useGameSounds();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,6 +49,7 @@ export default function AuthForm() {
       router.push('/play');
     } catch (err: any) {
       setError(err.message || 'Nastala chyba');
+      playError();
     } finally {
       setLoading(false);
     }
@@ -124,6 +127,7 @@ export default function AuthForm() {
             <button
               type="submit"
               disabled={loading}
+              onClick={() => playSubmit()}
               className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 disabled:bg-gray-800 disabled:text-gray-600 text-black font-semibold text-lg rounded-xl transition-all duration-200 shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 disabled:shadow-none"
             >
               {loading ? 'Načítání...' : isLogin ? 'Přihlásit se' : 'Vytvořit účet'}
@@ -132,10 +136,7 @@ export default function AuthForm() {
 
           <div className="text-center">
             <button
-              onClick={() => {
-                setIsLogin(!isLogin);
-                setError(null);
-              }}
+              onClick={() => { playClick(); setIsLogin(!isLogin); setError(null); }}
               className="text-emerald-400 hover:text-emerald-300 text-sm"
             >
               {isLogin ? 'Nemáte účet? Zaregistrujte se' : 'Již máte účet? Přihlaste se'}

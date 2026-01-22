@@ -16,14 +16,29 @@ async function seed() {
 
   // Vložení lokací
   console.log('📍 Inserting locations...');
-  const locations = locationsData.map((loc: any) => ({
-    title: loc.title,
-    pano_url: loc.panoUrl,
-    lat: loc.lat,
-    lng: loc.lng,
-    country: loc.country || null,
-    region: loc.region || null,
-  }));
+  const locations = locationsData.map((loc: any) => {
+    // Podpora pro imageUrls (pole) nebo imageUrl (string)
+    const imageUrls = Array.isArray(loc.imageUrls) 
+      ? loc.imageUrls
+      : loc.imageUrl || loc.panoUrl
+        ? [loc.imageUrl || loc.panoUrl]
+        : [];
+    
+    // Vybrat náhodný obrázek pro image_url (pro zpětnou kompatibilitu)
+    const imageUrl = imageUrls.length > 0 
+      ? imageUrls[Math.floor(Math.random() * imageUrls.length)]
+      : null;
+    
+    return {
+      title: loc.title,
+      image_url: imageUrl,
+      image_urls: imageUrls, // Uložit všechny obrázky jako JSON pole
+      lat: loc.lat,
+      lng: loc.lng,
+      country: loc.country || null,
+      region: loc.region || null,
+    };
+  });
 
   const { data: insertedLocations, error: locationsError } = await supabase
     .from('locations')

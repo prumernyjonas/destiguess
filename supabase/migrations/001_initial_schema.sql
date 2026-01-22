@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
 -- Vytvoření tabulky locations
 CREATE TABLE IF NOT EXISTS locations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  title TEXT NOT NULL,
+  title TEXT NOT NULL UNIQUE,
   pano_url TEXT NOT NULL,
   lat DOUBLE PRECISION NOT NULL,
   lng DOUBLE PRECISION NOT NULL,

@@ -53,17 +53,37 @@ export async function POST() {
     // Get first round with location
     const firstRound = await db.getRoundByGameAndIndex(game.id, 1);
     
+    if (!firstRound || !firstRound.location) {
+      throw new Error('Failed to fetch first round with location');
+    }
+    
+    // Vybrat náhodný obrázek z pole image_urls (pokud existuje), jinak použít image_url
+    let imageUrl = firstRound.location.image_url;
+    if (firstRound.location.image_urls && Array.isArray(firstRound.location.image_urls) && firstRound.location.image_urls.length > 0) {
+      const randomIndex = Math.floor(Math.random() * firstRound.location.image_urls.length);
+      imageUrl = firstRound.location.image_urls[randomIndex];
+    }
+    
     return NextResponse.json({
       gameId: game.id,
       round: {
         roundIndex: firstRound.round_index,
-        panoUrl: firstRound.location.pano_url,
+        imageUrl: imageUrl,
       },
     });
   } catch (error) {
     console.error('Error starting game:', error);
+    const errorDetails = error instanceof Error ? {
+      message: error.message,
+      stack: error.stack,
+    } : { message: String(error) };
+    
     return NextResponse.json(
-      { error: 'Failed to start game' },
+      { 
+        error: 'Failed to start game', 
+        details: errorDetails.message,
+        ...(process.env.NODE_ENV === 'development' && { stack: errorDetails.stack })
+      },
       { status: 500 }
     );
   }

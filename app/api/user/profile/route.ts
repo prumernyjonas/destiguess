@@ -22,9 +22,16 @@ export async function GET() {
       });
     }
 
-    return NextResponse.json(profile);
+    return NextResponse.json({
+      ...profile,
+      avatarUrl: profile.avatar_url, // Pro kompatibilitu s frontendem
+    });
   } catch (error) {
     console.error('Error fetching profile:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Internal server error', 
+      details: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    }, { status: 500 });
   }
 }
