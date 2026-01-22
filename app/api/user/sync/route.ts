@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/supabase-db';
 
-// This route syncs Supabase user with Prisma database
+// This route syncs Supabase user with database
 export async function POST() {
   try {
     const supabase = await createClient();
@@ -13,18 +13,14 @@ export async function POST() {
     }
 
     // Check if user exists
-    let dbUser = await prisma.user.findUnique({
-      where: { supabaseId: user.id },
-    });
+    let dbUser = await db.getUserBySupabaseId(user.id);
 
     // Create user if doesn't exist
     if (!dbUser) {
-      dbUser = await prisma.user.create({
-        data: {
-          supabaseId: user.id,
-          email: user.email!,
-          username: user.user_metadata?.username || user.email?.split('@')[0] || null,
-        },
+      dbUser = await db.createUser({
+        supabase_id: user.id,
+        email: user.email!,
+        username: user.user_metadata?.username || user.email?.split('@')[0] || null,
       });
     }
 

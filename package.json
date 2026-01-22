@@ -7,13 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "prisma:migrate": "prisma migrate dev",
-    "prisma:seed": "prisma db seed",
-    "prisma:generate": "prisma generate",
-    "prisma:studio": "prisma studio"
+    "seed": "npx tsx supabase/seed.ts"
   },
   "dependencies": {
-    "@prisma/client": "^5.22.0",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.91.0",
     "@types/maplibre-gl": "^1.13.2",
@@ -37,12 +33,8 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.4",
-    "prisma": "^5.22.0",
     "tailwindcss": "^4",
     "tsx": "^4.19.2",
     "typescript": "^5"
   },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
-  }
 }

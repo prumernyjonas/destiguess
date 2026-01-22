@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/supabase-db';
 
 export async function POST(request: Request) {
   try {
@@ -13,17 +13,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const round = await prisma.gameRound.findUnique({
-      where: {
-        gameId_roundIndex: {
-          gameId,
-          roundIndex,
-        },
-      },
-      include: {
-        location: true,
-      },
-    });
+    const round = await db.getRoundByGameAndIndex(gameId, roundIndex);
 
     if (!round) {
       return NextResponse.json(
@@ -34,8 +24,8 @@ export async function POST(request: Request) {
 
     // Return only panoUrl, not coordinates
     return NextResponse.json({
-      roundIndex: round.roundIndex,
-      panoUrl: round.location.panoUrl,
+      roundIndex: round.round_index,
+      panoUrl: round.location.pano_url,
     });
   } catch (error) {
     console.error('Error fetching round:', error);

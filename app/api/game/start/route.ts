@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { createClient } from '@/lib/supabase/server';
+import { db } from '@/lib/supabase-db';
 
 export async function POST() {
   try {
@@ -9,26 +9,20 @@ export async function POST() {
 
     let userId: string | undefined;
     if (user) {
-      const dbUser = await prisma.user.findUnique({
-        where: { supabaseId: user.id },
-      });
-      if (dbUser) {
-        userId = dbUser.id;
-      } else {
+      let dbUser = await db.getUserBySupabaseId(user.id);
+      if (!dbUser) {
         // Create user if doesn't exist
-        const newUser = await prisma.user.create({
-          data: {
-            supabaseId: user.id,
-            email: user.email!,
-            username: user.user_metadata?.username || user.email?.split('@')[0] || null,
-          },
+        dbUser = await db.createUser({
+          supabase_id: user.id,
+          email: user.email!,
+          username: user.user_metadata?.username || user.email?.split('@')[0] || null,
         });
-        userId = newUser.id;
       }
+      userId = dbUser.id;
     }
 
     // Get all locations
-    const allLocations = await prisma.location.findMany();
+    const allLocations = await db.getAllLocations();
     
     if (allLocations.length < 5) {
       return NextResponse.json(
@@ -42,33 +36,28 @@ export async function POST() {
     const selectedLocations = shuffled.slice(0, 5);
 
     // Create game
-    const game = await prisma.game.create({
-      data: {
-        userId,
-        rounds: {
-          create: selectedLocations.map((location, index) => ({
-            roundIndex: index + 1,
-            locationId: location.id,
-          })),
-        },
-      },
-      include: {
-        rounds: {
-          include: {
-            location: true,
-          },
-        },
-      },
+    const game = await db.createGame({
+      user_id: userId || null,
+      total_score: 0,
     });
 
-    // Return gameId and first round (only panoUrl, no coordinates)
-    const firstRound = game.rounds[0];
+    // Create rounds
+    const rounds = await db.createGameRounds(
+      selectedLocations.map((location, index) => ({
+        game_id: game.id,
+        round_index: index + 1,
+        location_id: location.id,
+      }))
+    );
+
+    // Get first round with location
+    const firstRound = await db.getRoundByGameAndIndex(game.id, 1);
     
     return NextResponse.json({
       gameId: game.id,
       round: {
-        roundIndex: firstRound.roundIndex,
-        panoUrl: firstRound.location.panoUrl,
+        roundIndex: firstRound.round_index,
+        panoUrl: firstRound.location.pano_url,
       },
     });
   } catch (error) {

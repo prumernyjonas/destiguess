@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/supabase-db';
 import { haversineKm, scoreFromDistance } from '@/lib/geo';
 
 export async function POST(request: Request) {
@@ -15,17 +15,7 @@ export async function POST(request: Request) {
     }
 
     // Get the round with location
-    const round = await prisma.gameRound.findUnique({
-      where: {
-        gameId_roundIndex: {
-          gameId,
-          roundIndex,
-        },
-      },
-      include: {
-        location: true,
-      },
-    });
+    const round = await db.getRoundByGameAndIndex(gameId, roundIndex);
 
     if (!round) {
       return NextResponse.json(
@@ -34,7 +24,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (round.guessedAt) {
+    if (round.guessed_at) {
       return NextResponse.json(
         { error: 'Round already guessed' },
         { status: 400 }
@@ -53,25 +43,16 @@ export async function POST(request: Request) {
     const score = scoreFromDistance(distanceKm);
 
     // Update round
-    await prisma.gameRound.update({
-      where: {
-        id: round.id,
-      },
-      data: {
-        guessLat,
-        guessLng,
-        distanceKm,
-        score,
-        guessedAt: new Date(),
-      },
+    await db.updateGameRound(round.id, {
+      guess_lat: guessLat,
+      guess_lng: guessLng,
+      distance_km: distanceKm,
+      score,
+      guessed_at: new Date().toISOString(),
     });
 
     // Calculate total score so far
-    const allRounds = await prisma.gameRound.findMany({
-      where: {
-        gameId,
-      },
-    });
+    const allRounds = await db.getGameRoundsByGameId(gameId);
 
     const totalScoreSoFar = allRounds
       .filter((r) => r.score !== null)
@@ -80,8 +61,8 @@ export async function POST(request: Request) {
     return NextResponse.json({
       distanceKm: Math.round(distanceKm * 100) / 100, // Round to 2 decimals
       score,
-      correctLat: round.location.lat,
-      correctLng: round.location.lng,
+      correctLat: round.location?.lat,
+      correctLng: round.location?.lng,
       totalScoreSoFar,
     });
   } catch (error) {

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/supabase-db';
 
 export async function POST(request: Request) {
   try {
@@ -14,17 +14,7 @@ export async function POST(request: Request) {
     }
 
     // Get all rounds with locations
-    const rounds = await prisma.gameRound.findMany({
-      where: {
-        gameId,
-      },
-      include: {
-        location: true,
-      },
-      orderBy: {
-        roundIndex: 'asc',
-      },
-    });
+    const rounds = await db.getGameRoundsByGameId(gameId);
 
     // Calculate total score
     const totalScore = rounds
@@ -32,28 +22,23 @@ export async function POST(request: Request) {
       .reduce((sum, r) => sum + (r.score || 0), 0);
 
     // Update game
-    const game = await prisma.game.update({
-      where: {
-        id: gameId,
-      },
-      data: {
-        finishedAt: new Date(),
-        totalScore,
-      },
+    const game = await db.updateGame(gameId, {
+      finished_at: new Date().toISOString(),
+      total_score: totalScore,
     });
 
     return NextResponse.json({
       gameId: game.id,
-      totalScore: game.totalScore,
-      finishedAt: game.finishedAt,
-      rounds: rounds.map((round) => ({
-        roundIndex: round.roundIndex,
-        locationTitle: round.location.title,
-        guessLat: round.guessLat,
-        guessLng: round.guessLng,
-        correctLat: round.location.lat,
-        correctLng: round.location.lng,
-        distanceKm: round.distanceKm,
+      totalScore: game.total_score,
+      finishedAt: game.finished_at,
+      rounds: rounds.map((round: any) => ({
+        roundIndex: round.round_index,
+        locationTitle: round.location?.title,
+        guessLat: round.guess_lat,
+        guessLng: round.guess_lng,
+        correctLat: round.location?.lat,
+        correctLng: round.location?.lng,
+        distanceKm: round.distance_km,
         score: round.score,
       })),
     });
