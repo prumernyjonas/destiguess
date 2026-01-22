@@ -9,7 +9,7 @@ import { useFullscreenPlay } from '@/components/FullscreenPlayContext';
 // Hudba se načítá z localStorage (nastaveno uživatelem v /settings)
 // Fallback na default hudbu, pokud není vybrána
 // ============================================
-const DEFAULT_MUSIC_URL = '/music/ambient.mp3'; // Default hudba
+const DEFAULT_MUSIC_URL = ''; // Žádná default hudba - pouze YouTube
 
 // Sdílený AudioContext pro všechny zvuky
 let audioContext: AudioContext | null = null;
@@ -25,111 +25,27 @@ function getAudioContext(): AudioContext {
   return audioContext;
 }
 
-// Vylepšené, uklidňující zvuky pomocí Web Audio API - více vrstev, bohatší zvuk
+// Uklidňující, smooth zvuky pomocí Web Audio API - bez šumu, velmi jemné
 function playTone(frequency: number, duration: number, type: OscillatorType = 'sine', volume: number = 0.12) {
   try {
     const ctx = getAudioContext();
-    
-    // Vytvořit více oscilátorů pro bohatší zvuk
-    const oscillator1 = ctx.createOscillator();
-    const oscillator2 = ctx.createOscillator();
+    const oscillator = ctx.createOscillator();
     const gainNode = ctx.createGain();
     
-    // Hlavní oscilátor
-    oscillator1.connect(gainNode);
-    oscillator1.frequency.value = frequency;
-    oscillator1.type = type;
-    
-    // Druhý oscilátor pro bohatší zvuk (harmonický)
-    oscillator2.connect(gainNode);
-    oscillator2.frequency.value = frequency * 1.5; // Oktáva a půl výš
-    oscillator2.type = 'sine';
-    
+    oscillator.connect(gainNode);
     gainNode.connect(ctx.destination);
+    
+    oscillator.frequency.value = frequency;
+    oscillator.type = type;
     
     // Velmi jemný, smooth fade-in a fade-out pro uklidňující zvuk
     const now = ctx.currentTime;
     gainNode.gain.setValueAtTime(0, now);
-    gainNode.gain.linearRampToValueAtTime(volume, now + 0.03); // Delší fade-in
+    gainNode.gain.linearRampToValueAtTime(volume, now + 0.02); // Delší fade-in pro smooth efekt
     gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration);
     
-    oscillator1.start(now);
-    oscillator2.start(now);
-    oscillator1.stop(now + duration);
-    oscillator2.stop(now + duration);
-  } catch (e) {
-    // Ignorovat chyby
-  }
-}
-
-// Speciální funkce pro klikací zvuk - více vrstev
-function playClickSound() {
-  try {
-    const ctx = getAudioContext();
-    const now = ctx.currentTime;
-    
-    // Vytvořit více oscilátorů pro bohatší klikací zvuk
-    const osc1 = ctx.createOscillator();
-    const osc2 = ctx.createOscillator();
-    const gain = ctx.createGain();
-    
-    osc1.connect(gain);
-    osc2.connect(gain);
-    gain.connect(ctx.destination);
-    
-    // Dva tóny pro příjemný klikací zvuk
-    osc1.frequency.setValueAtTime(800, now);
-    osc1.frequency.exponentialRampToValueAtTime(600, now + 0.05);
-    osc1.type = 'sine';
-    
-    osc2.frequency.setValueAtTime(1000, now);
-    osc2.frequency.exponentialRampToValueAtTime(800, now + 0.05);
-    osc2.type = 'sine';
-    
-    gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(0.08, now + 0.01);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
-    
-    osc1.start(now);
-    osc2.start(now);
-    osc1.stop(now + 0.08);
-    osc2.stop(now + 0.08);
-  } catch (e) {
-    // Ignorovat chyby
-  }
-}
-
-// Speciální funkce pro place zvuk (kliknutí na mapu) - jemnější
-function playPlaceSound() {
-  try {
-    const ctx = getAudioContext();
-    const now = ctx.currentTime;
-    
-    const osc1 = ctx.createOscillator();
-    const osc2 = ctx.createOscillator();
-    const gain = ctx.createGain();
-    
-    osc1.connect(gain);
-    osc2.connect(gain);
-    gain.connect(ctx.destination);
-    
-    // Dva tóny pro příjemný place zvuk
-    osc1.frequency.setValueAtTime(600, now);
-    osc1.frequency.exponentialRampToValueAtTime(500, now + 0.1);
-    osc1.type = 'sine';
-    
-    osc2.frequency.setValueAtTime(900, now);
-    osc2.frequency.exponentialRampToValueAtTime(700, now + 0.1);
-    osc2.type = 'sine';
-    
-    gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(0.1, now + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-    
-    osc1.start(now);
-    osc2.start(now);
-    osc1.stop(now + 0.12);
-    osc2.stop(now + 0.12);
+    oscillator.start(now);
+    oscillator.stop(now + duration);
   } catch (e) {
     // Ignorovat chyby
   }
@@ -152,11 +68,38 @@ const GameAudioContext = createContext<GameAudioContextValue | null>(null);
 
 const STORAGE_KEY = 'destiguess-muted';
 
+// YouTube IFrame API types
+declare global {
+  interface Window {
+    YT: any;
+    onYouTubeIframeAPIReady: () => void;
+  }
+}
+
+function extractYouTubeVideoId(url: string): string | null {
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+  ];
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match) return match[1];
+  }
+  return null;
+}
+
+function isYouTubeUrl(url: string): boolean {
+  return /youtube\.com|youtu\.be/.test(url);
+}
+
 export function GameAudioProvider({ children }: { children: React.ReactNode }) {
   const [muted, setMutedState] = useState(false);
   const [musicUrl, setMusicUrl] = useState<string>(DEFAULT_MUSIC_URL);
+  const [musicVolume, setMusicVolume] = useState<number>(0.1);
   const { isFullscreenPlay } = useFullscreenPlay();
   const musicAudioRef = useRef<HTMLAudioElement | null>(null);
+  const youtubePlayerRef = useRef<any>(null);
+  const youtubeContainerRef = useRef<HTMLDivElement | null>(null);
+  const youtubeApiLoadedRef = useRef<boolean>(false);
 
   useEffect(() => {
     try {
@@ -168,6 +111,15 @@ export function GameAudioProvider({ children }: { children: React.ReactNode }) {
       if (savedMusic) {
         setMusicUrl(savedMusic);
       }
+
+      // Načíst hlasitost hudby z localStorage
+      const savedVolume = localStorage.getItem('destiguess-music-volume');
+      if (savedVolume) {
+        const volume = parseFloat(savedVolume);
+        if (!isNaN(volume) && volume >= 0 && volume <= 1) {
+          setMusicVolume(volume);
+        }
+      }
     } catch {
       setMutedState(false);
     }
@@ -178,20 +130,37 @@ export function GameAudioProvider({ children }: { children: React.ReactNode }) {
     const handleMusicChange = (e: CustomEvent) => {
       const newUrl = e.detail?.url;
       if (newUrl && newUrl !== musicUrl) {
-        // Zastavit starou hudbu
+        // Zastavit starou hudbu (YouTube i audio)
         if (musicAudioRef.current) {
           musicAudioRef.current.pause();
           musicAudioRef.current = null;
+        }
+        if (youtubePlayerRef.current) {
+          try {
+            youtubePlayerRef.current.destroy();
+          } catch (e) {
+            console.log('Error destroying YouTube player:', e);
+          }
+          youtubePlayerRef.current = null;
         }
         setMusicUrl(newUrl);
       }
     };
 
+    const handleVolumeChange = (e: CustomEvent) => {
+      const newVolume = e.detail?.volume;
+      if (newVolume !== undefined && newVolume !== musicVolume) {
+        setMusicVolume(newVolume);
+      }
+    };
+
     window.addEventListener('music-changed', handleMusicChange as EventListener);
+    window.addEventListener('music-volume-changed', handleVolumeChange as EventListener);
     return () => {
       window.removeEventListener('music-changed', handleMusicChange as EventListener);
+      window.removeEventListener('music-volume-changed', handleVolumeChange as EventListener);
     };
-  }, [musicUrl]);
+  }, [musicUrl, musicVolume]);
 
   const setMuted = useCallback((m: boolean) => {
     setMutedState(m);
@@ -200,124 +169,272 @@ export function GameAudioProvider({ children }: { children: React.ReactNode }) {
     } catch {
       /**/
     }
-    // Zastavit hudbu pokud je muted
-    if (m && musicAudioRef.current) {
-      musicAudioRef.current.pause();
+    // Zastavit hudbu pokud je muted (YouTube i audio)
+    if (m) {
+      if (musicAudioRef.current) {
+        musicAudioRef.current.pause();
+      }
+      if (youtubePlayerRef.current) {
+        try {
+          youtubePlayerRef.current.pauseVideo();
+        } catch (e) {
+          console.log('Error pausing YouTube player:', e);
+        }
+      }
     }
   }, []);
 
-  // Vylepšené, uklidňující zvuky - více vrstev, bohatší zvuk
+  // Uklidňující, velmi jemné zvuky - nízká hlasitost
   const playPlace = useCallback(() => {
     if (!muted) {
-      playPlaceSound();
+      // Jemný, uklidňující tón pro kliknutí na mapu
+      playTone(523, 0.1, 'sine', 0.05); // C nota - velmi nízká hlasitost
     }
   }, [muted]);
 
   const playClick = useCallback(() => {
     if (!muted) {
-      playClickSound();
+      // Velmi jemný, uklidňující klikací zvuk
+      playTone(440, 0.12, 'sine', 0.04); // A nota - velmi nízká hlasitost
     }
   }, [muted]);
 
   const playSubmit = useCallback(() => {
     if (!muted) {
-      // Uklidňující dvoutónový zvuk s více vrstvami
-      playTone(523, 0.14, 'sine', 0.08); // C
-      setTimeout(() => playTone(659, 0.14, 'sine', 0.08), 100); // E - delší interval
+      // Uklidňující dvoutónový zvuk
+      playTone(523, 0.12, 'sine', 0.05); // C - velmi nízká hlasitost
+      setTimeout(() => playTone(659, 0.12, 'sine', 0.05), 80); // E - delší interval
     }
   }, [muted]);
 
   const playSwap = useCallback(() => {
     if (!muted) {
-      // Smooth swap zvuk s více vrstvami
-      playTone(440, 0.12, 'sine', 0.07);
-      setTimeout(() => playTone(554, 0.12, 'sine', 0.07), 90);
+      // Smooth swap zvuk
+      playTone(440, 0.1, 'sine', 0.04);
+      setTimeout(() => playTone(554, 0.1, 'sine', 0.04), 70);
     }
   }, [muted]);
 
   const playResult = useCallback(() => {
     if (!muted) {
-      // Uklidňující vzestupný tón s více vrstvami
-      playTone(440, 0.18, 'sine', 0.09); // A - nižší hlasitost
-      setTimeout(() => playTone(554, 0.18, 'sine', 0.09), 150); // C# - delší interval
-      setTimeout(() => playTone(659, 0.2, 'sine', 0.09), 300); // E
+      // Uklidňující vzestupný tón
+      playTone(440, 0.15, 'sine', 0.06); // A - nízká hlasitost
+      setTimeout(() => playTone(554, 0.15, 'sine', 0.06), 120); // C# - delší interval
+      setTimeout(() => playTone(659, 0.18, 'sine', 0.06), 240); // E
     }
   }, [muted]);
 
   const playSuccess = useCallback(() => {
     if (!muted) {
-      // Uklidňující úspěšný zvuk - tři tóny (C-E-G major) s více vrstvami
-      playTone(523, 0.14, 'sine', 0.08); // C
-      setTimeout(() => playTone(659, 0.14, 'sine', 0.08), 160); // E
-      setTimeout(() => playTone(784, 0.18, 'sine', 0.08), 320); // G
+      // Uklidňující úspěšný zvuk - tři tóny (C-E-G major)
+      playTone(523, 0.12, 'sine', 0.05); // C
+      setTimeout(() => playTone(659, 0.12, 'sine', 0.05), 140); // E
+      setTimeout(() => playTone(784, 0.16, 'sine', 0.05), 280); // G
     }
   }, [muted]);
 
   const playError = useCallback(() => {
     if (!muted) {
-      // Jemnější, uklidňující tón pro chybu s více vrstvami
-      playTone(330, 0.2, 'sine', 0.07); // Nižší frekvence, delší trvání
+      // Jemnější, uklidňující tón pro chybu
+      playTone(330, 0.18, 'sine', 0.04); // Nižší frekvence, delší trvání, velmi nízká hlasitost
     }
   }, [muted]);
 
   const playStart = useCallback(() => {
     if (!muted) {
-      // Smooth start zvuk s více vrstvami
-      playTone(440, 0.14, 'sine', 0.08);
-      setTimeout(() => playTone(554, 0.16, 'sine', 0.08), 140);
+      // Smooth start zvuk
+      playTone(440, 0.12, 'sine', 0.05);
+      setTimeout(() => playTone(554, 0.14, 'sine', 0.05), 120);
     }
   }, [muted]);
 
-  // Hudba v pozadí - hraje celou dobu na webu
+  // Načíst YouTube IFrame API
+  useEffect(() => {
+    if (youtubeApiLoadedRef.current) return;
+
+    // Zkontrolovat, zda už není načteno
+    if (window.YT && window.YT.Player) {
+      youtubeApiLoadedRef.current = true;
+      return;
+    }
+
+    // Vytvořit container pro YouTube player (skrytý)
+    if (!youtubeContainerRef.current) {
+      const container = document.createElement('div');
+      container.id = 'youtube-music-player';
+      container.style.position = 'fixed';
+      container.style.top = '-9999px';
+      container.style.left = '-9999px';
+      container.style.width = '1px';
+      container.style.height = '1px';
+      container.style.opacity = '0';
+      container.style.pointerEvents = 'none';
+      document.body.appendChild(container);
+      youtubeContainerRef.current = container;
+    }
+
+    // Načíst YouTube IFrame API script
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    const firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+
+    // Callback když je API připraveno
+    window.onYouTubeIframeAPIReady = () => {
+      youtubeApiLoadedRef.current = true;
+    };
+
+    return () => {
+      // Cleanup při unmount
+      if (youtubeContainerRef.current && youtubeContainerRef.current.parentNode) {
+        youtubeContainerRef.current.parentNode.removeChild(youtubeContainerRef.current);
+      }
+    };
+  }, []);
+
+  // Hudba v pozadí - pouze YouTube
   useEffect(() => {
     if (!musicUrl) return;
 
-    // Zastavit a zničit starou hudbu pokud existuje a je jiná
-    if (musicAudioRef.current) {
-      const currentSrc = musicAudioRef.current.src;
-      const newSrc = new URL(musicUrl, window.location.origin).href;
-      
-      if (currentSrc !== newSrc) {
+    const isYouTube = isYouTubeUrl(musicUrl);
+    const videoId = isYouTube ? extractYouTubeVideoId(musicUrl) : null;
+
+    if (!isYouTube || !videoId) {
+      // Pokud není YouTube URL, zastavit vše
+      if (youtubePlayerRef.current) {
+        try {
+          youtubePlayerRef.current.destroy();
+        } catch (e) {
+          console.log('Error destroying YouTube player:', e);
+        }
+        youtubePlayerRef.current = null;
+      }
+      if (musicAudioRef.current) {
         musicAudioRef.current.pause();
-        musicAudioRef.current.src = '';
-        musicAudioRef.current.load();
         musicAudioRef.current = null;
       }
+      return;
     }
 
-    // Vytvořit nový audio element pouze pokud neexistuje nebo je jiná hudba
-    if (!musicAudioRef.current) {
-      const audio = new Audio(musicUrl);
-      audio.loop = true;
-      audio.volume = muted ? 0 : 0.1;
-      musicAudioRef.current = audio;
+    // YouTube hudba - inicializace pouze pokud ještě není vytvořen player nebo se změnila URL
+    const initYouTubePlayer = () => {
+      if (!youtubeApiLoadedRef.current || !window.YT || !window.YT.Player) {
+        // Čekat na načtení API
+        setTimeout(initYouTubePlayer, 100);
+        return;
+      }
 
-      // Spustit pokud není muted
-      if (!muted) {
-        audio.play().catch((error) => {
-          // Ignorovat chyby autoplay (browser policy) - uživatel musí interagovat
-          console.log('Autoplay prevented, user interaction required');
-        });
+      // Pokud už existuje player se stejným videem, neinicializovat znovu
+      if (youtubePlayerRef.current) {
+        try {
+          const currentVideoId = youtubePlayerRef.current.getVideoData()?.video_id;
+          if (currentVideoId === videoId) {
+            // Stejné video, pouze aktualizovat hlasitost a mute stav
+            youtubePlayerRef.current.setVolume(muted ? 0 : Math.round(musicVolume * 100));
+            if (muted) {
+              youtubePlayerRef.current.pauseVideo();
+            } else {
+              // Zkontrolovat stav a spustit pouze pokud není paused nebo ended
+              const playerState = youtubePlayerRef.current.getPlayerState();
+              if (playerState === window.YT.PlayerState.PAUSED || playerState === window.YT.PlayerState.ENDED) {
+                youtubePlayerRef.current.playVideo();
+              }
+            }
+            return;
+          }
+          // Jiné video - zničit starý player
+          youtubePlayerRef.current.destroy();
+        } catch (e) {
+          console.log('Error checking YouTube player:', e);
+        }
+        youtubePlayerRef.current = null;
       }
-    } else {
-      // Aktualizovat hlasitost existujícího audio
-      musicAudioRef.current.volume = muted ? 0 : 0.1;
-      
-      // Spustit nebo pozastavit podle mute stavu
-      if (!muted && musicAudioRef.current.paused) {
-        musicAudioRef.current.play().catch(() => {
-          console.log('Play prevented');
-        });
-      } else if (muted && !musicAudioRef.current.paused) {
-        musicAudioRef.current.pause();
+
+      // Vytvořit container pokud neexistuje
+      if (!youtubeContainerRef.current) {
+        const container = document.createElement('div');
+        container.id = 'youtube-music-player';
+        container.style.position = 'fixed';
+        container.style.top = '-9999px';
+        container.style.left = '-9999px';
+        container.style.width = '1px';
+        container.style.height = '1px';
+        container.style.opacity = '0';
+        container.style.pointerEvents = 'none';
+        document.body.appendChild(container);
+        youtubeContainerRef.current = container;
       }
-    }
+
+      // Vytvořit nový YouTube player
+      try {
+        youtubePlayerRef.current = new window.YT.Player('youtube-music-player', {
+          videoId: videoId,
+          playerVars: {
+            autoplay: muted ? 0 : 1,
+            loop: 1,
+            playlist: videoId, // Pro loopování
+            controls: 0,
+            modestbranding: 1,
+            rel: 0,
+            showinfo: 0,
+            iv_load_policy: 3,
+          },
+          events: {
+            onReady: (event: any) => {
+              // Nastavit hlasitost
+              event.target.setVolume(muted ? 0 : Math.round(musicVolume * 100));
+              // Spustit pokud není muted
+              if (!muted) {
+                event.target.playVideo();
+              }
+            },
+            onStateChange: (event: any) => {
+              // Loopování - když video skončí, znovu spustit
+              if (event.data === window.YT.PlayerState.ENDED) {
+                event.target.playVideo();
+              }
+            },
+          },
+        });
+      } catch (e) {
+        console.error('Error creating YouTube player:', e);
+      }
+    };
+
+    initYouTubePlayer();
     
     return () => {
       // NIKDY nezastavovat hudbu - jen při unmount komponenty
       // Hudba bude pokračovat i při změně stránky
     };
-  }, [muted, musicUrl]);
+  }, [muted, musicUrl]); // Odstraněno musicVolume - pro YouTube se aktualizuje v samostatném useEffect
+
+  // Aktualizovat hlasitost YouTube playeru (bez re-inicializace)
+  useEffect(() => {
+    if (youtubePlayerRef.current && isYouTubeUrl(musicUrl)) {
+      try {
+        // Pouze aktualizovat hlasitost, ne spouštět video znovu
+        youtubePlayerRef.current.setVolume(muted ? 0 : Math.round(musicVolume * 100));
+        
+        // Spravovat pause/play pouze podle mute stavu
+        if (muted) {
+          const playerState = youtubePlayerRef.current.getPlayerState();
+          if (playerState === window.YT.PlayerState.PLAYING) {
+            youtubePlayerRef.current.pauseVideo();
+          }
+        } else {
+          // Pokud není muted, zkontrolovat stav a spustit pouze pokud je paused nebo ended
+          const playerState = youtubePlayerRef.current.getPlayerState();
+          if (playerState === window.YT.PlayerState.PAUSED || playerState === window.YT.PlayerState.ENDED) {
+            youtubePlayerRef.current.playVideo();
+          }
+          // Pokud už hraje, nechat hrát - pouze změnit hlasitost
+        }
+      } catch (e) {
+        console.log('Error updating YouTube player volume:', e);
+      }
+    }
+  }, [muted, musicVolume, musicUrl]);
 
   const value: GameAudioContextValue = {
     playPlace,

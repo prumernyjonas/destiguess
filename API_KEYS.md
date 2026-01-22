@@ -65,7 +65,27 @@ NEXT_PUBLIC_MAPTILER_API_KEY=your-maptiler-api-key-here
 
 ---
 
-### 4. PostgreSQL Databáze
+### 4. YouTube Data API (Hudba - volitelné)
+
+**Kde získat:**
+1. Jděte na [Google Cloud Console](https://console.cloud.google.com)
+2. Vytvořte nový projekt nebo vyberte existující
+3. Přejděte do **APIs & Services** → **Library**
+4. Vyhledejte "YouTube Data API v3" a povolte ji
+5. Přejděte do **APIs & Services** → **Credentials**
+6. Klikněte na **Create Credentials** → **API Key**
+7. Zkopírujte **API key** → `NEXT_PUBLIC_YOUTUBE_API_KEY`
+
+**Kam dát:**
+```env
+NEXT_PUBLIC_YOUTUBE_API_KEY=your-youtube-api-key-here
+```
+
+**Poznámka:** YouTube API klíč je volitelný. Pokud není nastaven, uživatelé stále mohou používat lokální MP3 soubory z `/public/music/` složky. YouTube vyhledávání bude dostupné pouze s platným API klíčem.
+
+---
+
+### 5. PostgreSQL Databáze
 
 **Varianta A: Použití Supabase PostgreSQL (Doporučeno)**
 
@@ -118,6 +138,11 @@ NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=destiguess-avatars
 NEXT_PUBLIC_MAPTILER_API_KEY=your-maptiler-api-key-here
 
 # ============================================
+# YOUTUBE DATA API (Hudba - volitelné)
+# ============================================
+NEXT_PUBLIC_YOUTUBE_API_KEY=your-youtube-api-key-here
+
+# ============================================
 # DATABASE CONFIGURATION
 # ============================================
 # Pro Supabase PostgreSQL:
@@ -153,6 +178,8 @@ DATABASE_URL=postgresql://postgres.xxxxx:[PASSWORD]@aws-0-eu-central-1.pooler.su
 
 - [ ] MapTiler účet vytvořen
 - [ ] `NEXT_PUBLIC_MAPTILER_API_KEY` nastaven
+- [ ] YouTube Data API klíč vytvořen (volitelné)
+- [ ] `NEXT_PUBLIC_YOUTUBE_API_KEY` nastaven (volitelné)
 - [ ] Supabase projekt vytvořen
 - [ ] `NEXT_PUBLIC_SUPABASE_URL` nastaven
 - [ ] `NEXT_PUBLIC_SUPABASE_ANON_KEY` nastaven
