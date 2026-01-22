@@ -83,11 +83,11 @@ export default function ResultMapClient({ guessLat, guessLng, correctLat, correc
               maxzoom: 22,
             },
           ],
-        };
+      } as const ;
 
     map.current = new maplibregl.Map({
       container: mapContainer.current,
-      style: mapStyle,
+      style: mapStyle as string | maplibregl.StyleSpecification,
       center: [centerLng, centerLat],
       zoom: 4,
     });
